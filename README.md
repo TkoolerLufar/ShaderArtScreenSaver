@@ -33,8 +33,8 @@ How to build:
 1. Prepare your Visual Studio with ".NET desktop development" feature.
 2. Open this Unity project on Unity and build it in *Build/Windows*.
 3. Open *ExternalPrograms/Windows/UnityScreenSaverLauncher/UnityScreenSaverLauncher.sln*.
-4. **Publish** the solution. An exe by Unity will be replaced by this step.
-5. Change the extension of the replaced **.exe** to **.scr**.
+4. **Publish** the solution. *Launcher.exe* will be put in *Build/Windows*.
+5. Rename Launcher.exe "**(your Unity project name).scr**"
 6. Complete!
 
 When you use the solution with your Unity project, make sure:

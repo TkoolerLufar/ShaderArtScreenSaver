@@ -5,7 +5,7 @@ import android.content.res.Configuration
 import android.service.dreams.DreamService
 import android.view.KeyEvent
 import com.unity3d.player.IUnityPlayerLifecycleEvents
-import com.unity3d.player.UnityPlayer
+import com.unity3d.player.UnityPlayerForActivityOrService
 
 /**
  * A service to provide the made with Unity as a screen saver (also known as a Daydream).
@@ -19,12 +19,12 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
      */
     @JvmField
     @Deprecated("Prevent from using directly from Kotlin code")
-    protected var mUnityPlayer: UnityPlayer? = null
+    protected var mUnityPlayer: UnityPlayerForActivityOrService? = null
 
     /**
      * My UnityPlayer instance.
      */
-    var myUnityPlayer: UnityPlayer
+    var unityPlayerConnection: UnityPlayerForActivityOrService
         get() {
             @Suppress("DEPRECATION")
             return this.mUnityPlayer!!
@@ -78,15 +78,16 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
 
         // Unity プレイヤーの起動
         // Start up UnityPlayer
-        this.myUnityPlayer = UnityPlayer(this, this).also { unityPlayer ->
-            // コマンドライン引数を渡す
-            // Give this the command line args
-            unityPlayer.newIntent(Intent(Intent.ACTION_DEFAULT).apply {
-                putExtra("unity", cmdLine)
-            })
-            this.setContentView(unityPlayer)
-            unityPlayer.requestFocus()
-        }
+        this.unityPlayerConnection = UnityPlayerForActivityOrService(this, this)
+            .also { unityPlayer ->
+                // コマンドライン引数を渡す
+                // Give this the command line args
+                unityPlayer.newIntent(Intent(Intent.ACTION_DEFAULT).apply {
+                    putExtra("unity", cmdLine)
+                })
+                this.setContentView(unityPlayer.frameLayout)
+                unityPlayer.frameLayout.requestFocus()
+            }
     }
 
     /**
@@ -94,14 +95,14 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
      */
     override fun onDreamingStarted() {
         super.onDreamingStarted()
-        this.myUnityPlayer.resume()
+        this.unityPlayerConnection.onResume()
     }
 
     /**
      * Stop animating the screen saver.
      */
     override fun onDreamingStopped() {
-        this.myUnityPlayer.pause()
+        this.unityPlayerConnection.onPause()
         super.onDreamingStopped()
     }
 
@@ -109,7 +110,7 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
      * Tear down the screen saver.
      */
     override fun onDetachedFromWindow() {
-        this.myUnityPlayer.destroy()
+        this.unityPlayerConnection.destroy()
         // Detach me UnityPlayerDream
         UnityPlayerDream.currentService = null
 
@@ -118,19 +119,22 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
 
     override fun onLowMemory() {
         super.onLowMemory()
-        this.myUnityPlayer.lowMemory()
+        this.unityPlayerConnection.onTrimMemory(UnityPlayerForActivityOrService.MemoryUsage.Critical)
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level == TRIM_MEMORY_RUNNING_CRITICAL) {
-            this.myUnityPlayer.lowMemory()
-        }
+        this.unityPlayerConnection.onTrimMemory(when (level) {
+            TRIM_MEMORY_RUNNING_MODERATE -> UnityPlayerForActivityOrService.MemoryUsage.Medium
+            TRIM_MEMORY_RUNNING_LOW -> UnityPlayerForActivityOrService.MemoryUsage.High
+            TRIM_MEMORY_RUNNING_CRITICAL -> UnityPlayerForActivityOrService.MemoryUsage.Critical
+            else -> return
+        })
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        this.myUnityPlayer.configurationChanged(newConfig)
+        this.unityPlayerConnection.configurationChanged(newConfig)
     }
 
     /**
@@ -140,7 +144,7 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
      */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        this.myUnityPlayer.windowFocusChanged(hasFocus)
+        this.unityPlayerConnection.windowFocusChanged(hasFocus)
     }
 
     // For some reason the multiple keyevent type is not supported by the ndk.
@@ -148,7 +152,7 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         @Suppress("DEPRECATION")
         return if (event!!.action == KeyEvent.ACTION_MULTIPLE) {
-            this.myUnityPlayer.injectEvent(event)
+            this.unityPlayerConnection.injectEvent(event)
         } else {
             super.dispatchKeyEvent(event)
         }
@@ -156,15 +160,15 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
 
     // Pass any events not handled by (unfocused) views straight to UnityPlayer
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        return this.myUnityPlayer.onKeyUp(keyCode, event)
+        return this.unityPlayerConnection.frameLayout.onKeyUp(keyCode, event)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return this.myUnityPlayer.onKeyDown(keyCode, event)
+        return this.unityPlayerConnection.frameLayout.onKeyDown(keyCode, event)
     }
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
-        return this.myUnityPlayer.onKeyLongPress(keyCode, event)
+        return this.unityPlayerConnection.frameLayout.onKeyLongPress(keyCode, event)
     }
 
     /**
@@ -172,7 +176,7 @@ open class UnityPlayerDreamService : DreamService(), KeyEvent.Callback,
      * Force event injection by overriding dispatchKeyEvent().
      */
     override fun onKeyMultiple(p0: Int, p1: Int, event: KeyEvent?): Boolean {
-        return this.myUnityPlayer.injectEvent(event)
+        return this.unityPlayerConnection.injectEvent(event)
     }
 
     /**

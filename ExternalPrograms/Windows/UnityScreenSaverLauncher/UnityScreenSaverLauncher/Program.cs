@@ -40,9 +40,7 @@ namespace UnityScreenSaverLauncher
 
                 SetPreviewModeToPlayerPrefs(true);
 
-                var parentWindow = NativeWindow.FromHandle(hWnd);
-                return UnityMain(Process.GetCurrentProcess().Handle, nint.Zero,
-                    $"-parentHWND {hWndStr}", 5);
+                return RunAsChildProcess($"-parentHWND {hWndStr}", hWnd);
             }
 
             // Start screen saver
@@ -54,8 +52,7 @@ namespace UnityScreenSaverLauncher
                 {
                     unityArgs = $"{unityArgs} -screen-width {primaryScreen.Bounds.Width} -screen-height {primaryScreen.Bounds.Height}";
                 }
-                return RunAsChildProcess(Process.GetCurrentProcess().Handle, nint.Zero,
-                    unityArgs, 1);
+                return RunAsChildProcess(unityArgs, nint.Zero);
             }
 
             return ShowConfig(nint.Zero);
@@ -92,25 +89,14 @@ namespace UnityScreenSaverLauncher
         }
 
         /// <summary>
-        /// Run Unity Player as this process.
-        /// </summary>
-        /// <param name="hInstance">Instance of the parent process.</param>
-        /// <param name="hPrevInstance">Unused since Win32.</param>
-        /// <param name="lpCmdLine">Command line arguments.</param>
-        /// <param name="nShowCmd">Prefered window mode.</param>
-        /// <returns>The exit code.</returns>
-        [DllImport("UnityPlayer.dll")]
-        static extern int UnityMain(nint hInstance, nint hPrevInstance, [MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, int nShowCmd);
-
-        /// <summary>
         /// Run Unity Player as a child process.
         /// </summary>
         /// <param name="hInstance">Instance of the parent process.</param>
         /// <param name="hPrevInstance">Unused since Win32.</param>
-        /// <param name="lpCmdLine">Command line arguments.</param>
+        /// <param name="UnityArguments">Command line arguments.</param>
         /// <param name="nShowCmd">Prefered window mode.</param>
         /// <returns>The exit code.</returns>
-        static int RunAsChildProcess(nint hInstance, nint hPrevInstance, string lpCmdLine, int nShowCmd)
+        static int RunAsChildProcess(string UnityArguments, nint ParentWindowHandle)
         {
             var assembly = Assembly.GetExecutingAssembly();
             string productName = assembly.GetCustomAttribute<AssemblyProductAttribute>()!.Product;
@@ -119,7 +105,10 @@ namespace UnityScreenSaverLauncher
             {
                 FileName = $"{productName}.exe",
                 WindowStyle = ProcessWindowStyle.Normal,
-                Arguments = lpCmdLine,
+                Arguments = UnityArguments,
+                CreateNoWindow = ParentWindowHandle != nint.Zero,
+                ErrorDialog = ParentWindowHandle != nint.Zero,
+                ErrorDialogParentHandle = ParentWindowHandle,
             });
             if (process is null)
             {

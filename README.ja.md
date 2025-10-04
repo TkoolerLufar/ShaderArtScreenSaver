@@ -33,8 +33,8 @@ Windowsスクリーンセーバーのランチャーを ExternalPrograms/Windows
 1. あらかじめ Visual Studio に ".NET デスクトップ開発" 機能を入れておく
 2. このUnityプロジェクトをUnityで開いて *Build/Windows* にビルド
 3. *ExternalPrograms/Windows/UnityScreenSaverLauncher/UnityScreenSaverLauncher.sln* を開く
-4. そのソリューションを**発行**する。これでUnityが作ったexeが置き換えられます。
-5. 出来上がった **.exe** の拡張子を **.scr** に変更する
+4. そのソリューションを**発行**する。これで *Launcher.exe* が *Build/Windows* に配置されます。
+5. 出来上がった **Launcher.exe** の名前を **(自分のUnityプロジェクト名).scr** に変更する
 6. 完成！
 
 自分の Unity に導入する手順:
