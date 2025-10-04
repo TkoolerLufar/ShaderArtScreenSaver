@@ -22,6 +22,6 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="IF &quot;$(Configuration)&quot;==&quot;Release&quot; (&#xD;&#xA;  IF EXIST &quot;$(OutputPath)$(AssemblyName).scr&quot; DEL &quot;$(OutputPath)$(AssemblyName).scr&quot;&#xD;&#xA;  RENAME &quot;$(OutputPath)$(AssemblyName).exe&quot; &quot;$(Product).scr&quot;&#xD;&#xA;)" />
+    <Exec Command="IF &quot;$(Configuration)&quot;==&quot;Release&quot; (&#xD;&#xA;  IF EXIST &quot;$(OutputPath)$(Product).scr&quot; DEL &quot;$(OutputPath)$(Product).scr&quot;&#xD;&#xA;  RENAME &quot;$(OutputPath)$(AssemblyName).exe&quot; &quot;$(Product).scr&quot;&#xD;&#xA;)" />
   </Target>
 </Project>
