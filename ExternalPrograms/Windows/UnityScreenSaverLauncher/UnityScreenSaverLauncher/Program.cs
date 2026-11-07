@@ -1,8 +1,10 @@
 using Microsoft.Win32;
+using System.IO;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.ComponentModel;
 
 namespace UnityScreenSaverLauncher
 {
@@ -48,17 +50,31 @@ namespace UnityScreenSaverLauncher
 
                 SetPreviewModeToPlayerPrefs(true);
 
-                return RunAsChildProcess($"-parentHWND {hWndStr}", hWnd);
+                return RunAsChildProcess([
+                    "-parentHWND",
+                    hWnd.ToString(CultureInfo.InvariantCulture)
+                ], hWnd);
             }
 
             // Start screen saver
             if (firstArg == "/S")
             {
                 SetPreviewModeToPlayerPrefs(false);
-                var unityArgs = "-screen-fullscreen 1 -window-mode borderless";
+                string[] unityArgs = [
+                    "-screen-fullscreen",
+                    "1",
+                    "-window-mode",
+                    "borderless"
+                    ];
                 if (Screen.PrimaryScreen is Screen primaryScreen)
                 {
-                    unityArgs = $"{unityArgs} -screen-width {primaryScreen.Bounds.Width} -screen-height {primaryScreen.Bounds.Height}";
+                    unityArgs = [
+                        ..unityArgs,
+                        "-screen-width",
+                        primaryScreen.Bounds.Width.ToString(CultureInfo.InvariantCulture),
+                        "-screen-height",
+                        primaryScreen.Bounds.Height.ToString(CultureInfo.InvariantCulture)
+                        ];
                 }
                 return RunAsChildProcess(unityArgs, nint.Zero);
             }
@@ -99,8 +115,6 @@ namespace UnityScreenSaverLauncher
         /// <summary>
         /// Run Unity Player as a child process.
         /// </summary>
-        /// <param name="hInstance">Instance of the parent process.</param>
-        /// <param name="hPrevInstance">Unused since Win32.</param>
         /// <param name="UnityArguments">Command line arguments.</param>
         /// <param name="ParentWindowHandle">Handle to the parent window, or nint.Zero if it has no parent window.</param>
         /// <returns>The exit code of the child process, or 1 if failed to start.</returns>
@@ -108,22 +122,32 @@ namespace UnityScreenSaverLauncher
         {
             var assembly = Assembly.GetExecutingAssembly();
             string productName = assembly.GetCustomAttribute<AssemblyProductAttribute>()!.Product;
-
-            var process = Process.Start(new ProcessStartInfo
+            var processStartInfo = new ProcessStartInfo
             {
-                FileName = $"{productName}.exe",
+                FileName = Path.Combine(AppContext.BaseDirectory, $"{productName}.exe"),
                 WindowStyle = ProcessWindowStyle.Normal,
-                Arguments = UnityArguments,
                 CreateNoWindow = ParentWindowHandle != nint.Zero,
                 ErrorDialog = ParentWindowHandle != nint.Zero,
                 ErrorDialogParentHandle = ParentWindowHandle,
-            });
-            if (process is null)
+            };
+            foreach (var arg in UnityArguments)
+            {
+                processStartInfo.ArgumentList.Add(arg);
+            }
+            try
+            {
+                var process = Process.Start(processStartInfo);
+                if (process is null)
+                {
+                    return 1;
+                }
+                process.WaitForExit();
+                return process.ExitCode;
+            }
+            catch (Win32Exception)
             {
                 return 1;
             }
-            process.WaitForExit();
-            return process.ExitCode;
         }
     }
 }
