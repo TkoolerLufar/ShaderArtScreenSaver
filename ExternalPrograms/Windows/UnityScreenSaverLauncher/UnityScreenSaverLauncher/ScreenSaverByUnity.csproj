@@ -21,7 +21,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>none</DebugType>
   </PropertyGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="IF &quot;$(Configuration)&quot;==&quot;Release&quot; (&#xD;&#xA;  IF EXIST &quot;$(OutputPath)$(Product).scr&quot; DEL &quot;$(OutputPath)$(Product).scr&quot;&#xD;&#xA;  RENAME &quot;$(OutputPath)$(AssemblyName).exe&quot; &quot;$(Product).scr&quot;&#xD;&#xA;)" />
+  <Target Name="CopyPublishedScreenSaver" AfterTargets="Publish">
+    <PropertyGroup>
+      <PublishedExecutablePath>
+        $(PublishDir)$(AssemblyName).exe
+      </PublishedExecutablePath>
+      <ScreenSaverPath>
+        $(PublishDir)$(Product).scr
+      </ScreenSaverPath>
+    </PropertyGroup>
+    <Delete Files="$(ScreenSaverPath)" />
+    <Move SourceFiles="$(PublishedExecutablePath)" DestinationFiles="$(ScreenSaverPath)" />
   </Target>
 </Project>
