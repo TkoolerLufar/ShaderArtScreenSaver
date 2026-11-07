@@ -11,7 +11,7 @@ Shader "Unlit/MyArtShader"
         _hiColor ("High-intense Color", Color) = (1., 0., 0., 1.)
     }
 
-    // It has nly one sub shader
+    // It has only one sub shader
     SubShader
     {
         Tags { "RenderType"="Opaque" }
