@@ -94,9 +94,9 @@ namespace UnityScreenSaverLauncher
         /// <param name="hInstance">Instance of the parent process.</param>
         /// <param name="hPrevInstance">Unused since Win32.</param>
         /// <param name="UnityArguments">Command line arguments.</param>
-        /// <param name="nShowCmd">Prefered window mode.</param>
-        /// <returns>The exit code.</returns>
-        static int RunAsChildProcess(string UnityArguments, nint ParentWindowHandle)
+        /// <param name="ParentWindowHandle">Handle to the parent window, or nint.Zero if it has no parent window.</param>
+        /// <returns>The exit code of the child process, or 1 if failed to start.</returns>
+        static int RunAsChildProcess(string[] UnityArguments, nint ParentWindowHandle)
         {
             var assembly = Assembly.GetExecutingAssembly();
             string productName = assembly.GetCustomAttribute<AssemblyProductAttribute>()!.Product;
