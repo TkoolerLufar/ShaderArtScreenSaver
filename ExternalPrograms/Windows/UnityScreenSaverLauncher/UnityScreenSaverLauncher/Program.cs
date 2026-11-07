@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
 namespace UnityScreenSaverLauncher
 {
@@ -23,20 +24,27 @@ namespace UnityScreenSaverLauncher
                 return ShowConfig(nint.Zero);
             }
 
-            var firstArg = args[0].ToUpper();
+            var firstArg = args[0].ToUpperInvariant();
 
             // Show config window from screen saver settings
-            if (firstArg.StartsWith("/C"))
+            if (firstArg == "/C" && args.Length > 1 ||
+                firstArg.StartsWith("/C:", StringComparison.Ordinal))
             {
-                var hWnd = args.Length > 1 ? nint.Parse(firstArg.StartsWith("/C:") ? firstArg[3..] : args[1]) : nint.Zero;
+                nint hWnd = nint.Zero;
+                nint.TryParse(firstArg == "/C" ? args[1] : firstArg[3..], out hWnd);
                 return ShowConfig(hWnd);
             }
 
             // Show preview
-            if (firstArg.StartsWith("/P"))
+            if (firstArg == "/P" && args.Length > 1 ||
+                firstArg.StartsWith("/P:", StringComparison.Ordinal))
             {
-                var hWndStr = firstArg.StartsWith("/P:") ? firstArg[3..] : args[1];
-                var hWnd = nint.Parse(hWndStr);
+                var hWndStr = firstArg == "/P" ? args[1] : firstArg[3..];
+                nint hWnd;
+                if (!nint.TryParse(hWndStr, out hWnd))
+                {
+                    return 1;
+                }
 
                 SetPreviewModeToPlayerPrefs(true);
 
