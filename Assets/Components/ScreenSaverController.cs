@@ -1,28 +1,55 @@
 using System;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
+
+#if ENABLE_INPUT_SYSTEM
+using MousePosition = UnityEngine.Vector2;
+#else
+using MousePosition = UnityEngine.Vector3;
+#endif
 
 public class ScreenSaverController : MonoBehaviour
 {
     /// <summary>
     /// prevMousePosition is initialized as this invalid position.
     /// </summary>
-    private static readonly Vector3 MouseNotCaptured = Vector3.left;
+    private bool isMouseCaptured = false;
 
     /// <summary>
     /// True if this is preview.
     /// </summary>
     public bool IsPreview
     {
-        get =>
-#if UNITY_STANDALONE && !UNITY_EDITOR
-        PlayerPrefs.GetInt("isPreview") != 0
-#else
-        false
-#endif
-        ;
+        get;
+        private set;
     }
-    private Vector3 prevMousePosition = MouseNotCaptured;
+    private MousePosition prevMousePosition;
     private bool isQuitting = false;
+
+    /// <summary>
+    /// If false, this disables itself at starting with preview mode.
+    /// </summary>
+    [SerializeField] private bool StayEnabledEvenIfPreview;
+
+    private void Awake()
+    {
+#if UNITY_STANDALONE && !UNITY_EDITOR
+        this.IsPreview = PlayerPrefs.GetInt("isPreview") != 0;
+#else
+        this.IsPreview = false;
+#endif
+    }
+
+    private void Start()
+    {
+        if (!this.StayEnabledEvenIfPreview && this.IsPreview)
+        {
+            this.enabled = false;
+        }
+    }
 
     void Update()
     {
@@ -32,34 +59,51 @@ public class ScreenSaverController : MonoBehaviour
         }
 
         // Quit when the screen is touched
-        if (Input.touchCount > 0)
+        if (IsTouched())
         {
             Quit();
+            return;
         }
 
         // Quit when the mouse is moving
+#if ENABLE_INPUT_SYSTEM
+        var currentMousePosition = Mouse.current?.position?.value ?? prevMousePosition;
+#else
         var currentMousePosition = Input.mousePosition;
-        try
+#endif
+        if (isMouseCaptured && prevMousePosition != currentMousePosition)
         {
-            var mouseVelocity = currentMousePosition - prevMousePosition;
-            if (prevMousePosition != MouseNotCaptured &&
-            mouseVelocity != Vector3.zero)
-            {
-                Quit();
-            }
+            Quit();
+            return;
         }
-        finally
-        {
-            prevMousePosition = currentMousePosition;
-        }
+        prevMousePosition = currentMousePosition;
+        isMouseCaptured = true;
 
         // Quit when any key or mouse button is pressed
-        if (Input.anyKey)
+        if (IsKeyboardOrMousePressed())
         {
             Quit();
         }
     }
 
+    private static bool IsKeyboardOrMousePressed() =>
+#if ENABLE_INPUT_SYSTEM
+        (Keyboard.current?.anyKey?.isPressed ?? false) ||
+        (Mouse.current?.leftButton?.isPressed ?? false) ||
+        (Mouse.current?.rightButton?.isPressed ?? false) ||
+        (Mouse.current?.middleButton?.isPressed ?? false)
+#else
+        Input.anyKey
+#endif
+        ;
+
+    private static bool IsTouched() =>
+#if ENABLE_INPUT_SYSTEM
+        Touchscreen.current?.press?.isPressed ?? false
+#else
+        Input.touchCount > 0
+#endif
+        ;
     /// <summary>
     /// Try to quit this screen saver.
     /// This function does nothing after once success.
@@ -72,6 +116,7 @@ public class ScreenSaverController : MonoBehaviour
         }
         QuitApplication();
         this.isQuitting = true;
+        this.enabled = false;
     }
 
     /// <summary>
